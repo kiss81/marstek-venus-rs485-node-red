@@ -3,8 +3,12 @@
 
 Comment kiss81: this fork is a proof of concept for a multi battery setup that uses the marstek CT PID anti-feed mode in "full control mode" instead of forcing the batteries in rs485 mode and forcing power updates. The rationale behind this is that it might damage your marstek flash memory because of having so many "forced power" updates. 
 This version works the same as gitcodebob version, but for now you need to set the PID to: Kp = 1, Ki = 0, Kd = 0, input smoothing / output smoothing to your liking. (high output smoothing prevents additional batteries to be switched into anti-feed during short peak currents) 
+To use / switch from Bob's version:all-flows-in-one-file.jsonz
+1) import the all-flows-in-one-file.json in node red
+2) replace the packages/house_battery_control_config.yaml
+3) update your dashboard in home assistant to use the stub for stop / charge / discharge. Easiest to go to your dashboard and edit in raw mode and just replace the 4 entities in the "Your energy and battery usage" section. Alternatively you can just reimport the dashboard.yaml
 
-
+Original: 
 Home Battery Control is an open-source solution for the community to control home batteries and electric vehicles using Home Assistant and Node-RED. Control your batteries exactly how you want, all in one place without vendor lock-ins.
 
 This project is designed for hobbyists who want full control over their home battery systems. It provides ready-to-use flows and configuration examples, including a PID controller for advanced battery management. Use at your own discretion.
