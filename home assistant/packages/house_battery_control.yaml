@@ -687,6 +687,37 @@ input_select:
       - energy reserve
     icon: mdi:cash-multiple
 
+  # battery control modes (instead of rs485 control mode)
+  marstek_m1_control_mode:
+    name: M1 control mode
+    options:
+      - stop
+      - charge
+      - discharge
+    icon: mdi:strategy
+  marstek_m2_control_mode:
+    name: M2 control mode
+    options:
+      - stop
+      - charge
+      - discharge
+    icon: mdi:strategy
+  marstek_m3_control_mode:
+    name: M3 control mode
+    options:
+      - stop
+      - charge
+      - discharge
+    icon: mdi:strategy
+  marstek_m4_control_mode:
+    name: M4 control mode
+    options:
+      - stop
+      - charge
+      - discharge
+    icon: mdi:strategy
+
+
 ###########################################################################################################
 # TEMPLATE SENSORS
 ###########################################################################################################

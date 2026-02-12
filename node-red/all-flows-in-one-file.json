@@ -1035,9 +1035,9 @@
             "8444b99d3d720a22",
             "631e6ef53280c103"
         ],
-        "x": 34,
+        "x": 8,
         "y": 379,
-        "w": 1678,
+        "w": 1704,
         "h": 242
     },
     {
@@ -1614,12 +1614,13 @@
             "14e87e8913158506",
             "2586ea7beeb67ff1",
             "a110998f48a4695a",
-            "2e2223c87c18f763"
+            "2e2223c87c18f763",
+            "6eeb4a6e071b2527"
         ],
-        "x": 74,
-        "y": 459,
-        "w": 1612,
-        "h": 82
+        "x": 34,
+        "y": 419,
+        "w": 1652,
+        "h": 122
     },
     {
         "id": "d7fbf710d03761d6",
@@ -1639,8 +1640,7 @@
             "51cf0ebb503e1325",
             "7541d9a9301c62cf",
             "309aa330323db6cd",
-            "b3a89b2c0f052eb6",
-            "c7c790f61a309b5e"
+            "b3a89b2c0f052eb6"
         ],
         "x": 314,
         "y": 1019,
@@ -2097,7 +2097,7 @@
         "y": 420,
         "wires": [
             [
-                "c1dc366a95ab39fb"
+                "6eeb4a6e071b2527"
             ]
         ]
     },
@@ -2107,7 +2107,7 @@
         "z": "7f5460695ee75513",
         "g": "bea22cae65f8e9d5",
         "name": "Mapping",
-        "func": "// Map to batteries array\nmsg.batteries.push({\n    id: `M${msg.battery_index}`,\n    power: parseInt(msg.battery_power,10),\n    charging_max: parseInt(msg.max_charge_power,10),\n    discharging_max: parseInt(msg.max_discharge_power,10),\n    soc: parseInt(msg.battery_state_of_charge,10),\n    soc_max: parseInt(msg.charging_cutoff_capacity,10),\n    soc_min: parseInt(msg.discharging_cutoff_capacity,10),\n    inverter: String(msg.inverter_state),\n    energy: Number(msg.battery_remaining_capacity),\n    energy_max: Number(msg.battery_total_energy),\n    rs485: String(msg.rs485_control_mode)\n    });\n\n// Continue\nreturn msg;",
+        "func": "// Map to batteries array\nmsg.batteries.push({\n    id: `M${msg.battery_index}`,\n    power: parseInt(msg.battery_power,10),\n    charging_max: parseInt(msg.max_charge_power,10),\n    discharging_max: parseInt(msg.max_discharge_power,10),\n    soc: parseInt(msg.battery_state_of_charge,10),\n    soc_max: parseInt(msg.charging_cutoff_capacity,10),\n    soc_min: parseInt(msg.discharging_cutoff_capacity,10),\n    inverter: String(msg.inverter_state),\n    energy: Number(msg.battery_remaining_capacity),\n    energy_max: Number(msg.battery_total_energy),\n    rs485: String(msg.control_mode)\n    });\n\n// Continue\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -2147,7 +2147,7 @@
         "y": 580,
         "wires": [
             [
-                "c1dc366a95ab39fb"
+                "6eeb4a6e071b2527"
             ],
             [
                 "631e6ef53280c103"
@@ -2266,12 +2266,10 @@
         "override_payload": "msg",
         "entity_location": "data",
         "override_data": "msg",
-        "x": 180,
-        "y": 500,
+        "x": 480,
+        "y": 460,
         "wires": [
-            [
-                "14e87e8913158506"
-            ]
+            []
         ]
     },
     {
@@ -2679,7 +2677,7 @@
         "z": "7f5460695ee75513",
         "g": "d7fbf710d03761d6",
         "name": "Set Batteries",
-        "func": "// Logger\nconst log = global.get(\"logger\");\n\n// enums\nconst CMODE = {\n    STOP: \"stop\", // Marstek batteries disconnect a relay when this is set or Power is 0W\n    CHARGE: \"charge\",\n    DISCHARGE: \"discharge\"\n}\n\nconst CTMODE = {\n    MANUAL: \"manual\",\n    ANTIFEED: \"anti-feed\",\n    AI: \"ai\"\n}\n\nlet ctMode = CTMODE.MANUAL;\n\n// Output format and target\nlet outputArray = [];\nlet solution = msg.solutions[msg.battery_index-1]; // Base-0, thus -1\nif (solution === undefined) {\n    log(this,`Can't find solution for index ${msg.battery_index - 1} in ${msg.solutions}, aborting...`,\"error\");\n    return null;\n}\nlet target = `marstek_${solution.id.toLowerCase()}`;\n\n// Safety | Id exists\nlet battery = msg.batteries.find(battery => battery.id === solution.id);\nif (battery === undefined) {\n    log(`Can't set battery ${solution.id}, aborting...`,\"error\");\n    return null;\n}\n// Safety | Power limit\nsolution.power = Math.min(solution.power, solution.mode == CMODE.CHARGE ? battery.charging_max: battery.discharging_max);\n\nif(solution.mode == CMODE.CHARGE || solution.mode == CMODE.DISCHARGE)\n{\n    ctMode = CTMODE.ANTIFEED;\n}\nelse\n{\n    ctMode = CTMODE.MANUAL;\n}\n//ctMode = CTMODE.ANTIFEED;\n\n// Set | Mode\nconst serviceCallMode = {\n    \"action\": \"select.select_option\",\n    \"target\": {\n        \"entity_id\": [`select.${target}_forcible_charge_discharge`]\n    },\n    \"data\": {\n         \"option\": String(solution.mode) // forced charge mode (stop, charge, discharge)\n    }\n};\n// Add topic to allow correct 'on change' filtering\noutputArray.push({payload: serviceCallMode, topic:solution.id});\n\n// Set | Power\nconst serviceCallPower = {\n    \"action\": \"number.set_value\",\n    \"target\": {\n        \"entity_id\": [\n            `number.${target}_forcible_charge_power`,\n            `number.${target}_forcible_discharge_power`\n            ]\n    },\n    \"data\": {\n        \"value\": Number(solution.power)\n    } \n};\n// Add topic to allow correct 'on change' filtering\noutputArray.push({payload: serviceCallPower, topic:solution.id});\n\n// Set | Mode\nconst serviceCallCtMode = {\n    \"action\": \"select.select_option\",\n    \"target\": {\n        \"entity_id\": [`select.${target}_user_work_mode`]\n    },\n    \"data\": {\n        \"option\": String(ctMode) // forced charge mode (stop, charge, discharge)\n    }\n};\n// Add topic to allow correct 'on change' filtering\noutputArray.push({payload: serviceCallCtMode, topic:solution.id});\n\n// Store service calls in msg to allow checking of loop results\nmsg.loop_result = { target, serviceCallMode, serviceCallPower, serviceCallCtMode };\n\n// Return msg as third output\noutputArray.push(msg);\n\n// Explain\nlog(this,`${target} ${String(solution.mode)} @ ${Number(solution.power)} Watt`);\n\n// Output\nreturn outputArray;",
+        "func": "// Logger\nconst log = global.get(\"logger\");\n\n// enums\nconst CMODE = {\n    STOP: \"stop\", // Marstek batteries disconnect a relay when this is set or Power is 0W\n    CHARGE: \"charge\",\n    DISCHARGE: \"discharge\"\n}\n\nconst CTMODE = {\n    MANUAL: \"manual\",\n    ANTIFEED: \"anti-feed\",\n    AI: \"ai\"\n}\n\nlet ctMode = CTMODE.MANUAL;\n\n// Output format and target\nlet outputArray = [];\nlet solution = msg.solutions[msg.battery_index-1]; // Base-0, thus -1\nif (solution === undefined) {\n    log(this,`Can't find solution for index ${msg.battery_index - 1} in ${msg.solutions}, aborting...`,\"error\");\n    return null;\n}\nlet target = `marstek_${solution.id.toLowerCase()}`;\n\n// Safety | Id exists\nlet battery = msg.batteries.find(battery => battery.id === solution.id);\nif (battery === undefined) {\n    log(`Can't set battery ${solution.id}, aborting...`,\"error\");\n    return null;\n}\n// Safety | Power limit\nsolution.power = Math.min(solution.power, solution.mode == CMODE.CHARGE ? battery.charging_max: battery.discharging_max);\n\nif(solution.mode == CMODE.CHARGE || solution.mode == CMODE.DISCHARGE)\n{\n    ctMode = CTMODE.ANTIFEED;\n}\nelse\n{\n    ctMode = CTMODE.MANUAL;\n}\n//ctMode = CTMODE.ANTIFEED;\n\n// Set | Mode\nconst serviceCallMode = {\n    \"action\": \"input_select.select_option\",\n    \"target\": {\n        \"entity_id\": [`input_select.${target}_control_mode`]\n    },\n    \"data\": {\n         \"option\": String(solution.mode) // forced charge mode (stop, charge, discharge)\n    }\n};\n// Add topic to allow correct 'on change' filtering\noutputArray.push({payload: serviceCallMode, topic:solution.id});\n\n// Set | Power\nconst serviceCallPower = {\n    \"action\": \"number.set_value\",\n    \"target\": {\n        \"entity_id\": [\n            `number.${target}_forcible_charge_power`,\n            `number.${target}_forcible_discharge_power`\n            ]\n    },\n    \"data\": {\n        \"value\": Number(solution.power)\n    } \n};\n// Add topic to allow correct 'on change' filtering\noutputArray.push({payload: serviceCallPower, topic:solution.id});\n\n// Set | Mode\nconst serviceCallCtMode = {\n    \"action\": \"select.select_option\",\n    \"target\": {\n        \"entity_id\": [`select.${target}_user_work_mode`]\n    },\n    \"data\": {\n        \"option\": String(ctMode) // forced charge mode (stop, charge, discharge)\n    }\n};\n// Add topic to allow correct 'on change' filtering\noutputArray.push({payload: serviceCallCtMode, topic:solution.id});\n\n// Store service calls in msg to allow checking of loop results\nmsg.loop_result = { target, serviceCallMode, serviceCallPower, serviceCallCtMode };\n\n// Return msg as third output\noutputArray.push(msg);\n\n// Explain\nlog(this,`${target} ${String(solution.mode)} @ ${Number(solution.power)} Watt`);\n\n// Output\nreturn outputArray;",
         "outputs": 4,
         "timeout": 0,
         "noerr": 0,
@@ -2690,7 +2688,7 @@
         "y": 1140,
         "wires": [
             [
-                "c7c790f61a309b5e"
+                "d98f534e50c7d44e"
             ],
             [],
             [
@@ -4473,23 +4471,53 @@
         ]
     },
     {
-        "id": "c7c790f61a309b5e",
-        "type": "rbe",
+        "id": "6eeb4a6e071b2527",
+        "type": "api-current-state",
         "z": "7f5460695ee75513",
-        "g": "d7fbf710d03761d6",
-        "name": "on change",
-        "func": "rbe",
-        "gap": "",
-        "start": "",
-        "inout": "out",
-        "septopics": true,
-        "property": "payload",
-        "topi": "topic",
-        "x": 590,
-        "y": 1060,
+        "g": "c256db967cf5dccc",
+        "name": "Control Mode (stub)",
+        "server": "176d29a.6f648d6",
+        "version": 3,
+        "outputs": 1,
+        "halt_if": "",
+        "halt_if_type": "str",
+        "halt_if_compare": "is",
+        "entity_id": "input_select.marstek_m{{battery_index}}_control_mode",
+        "state_type": "str",
+        "blockInputOverrides": true,
+        "outputProperties": [
+            {
+                "property": "payload",
+                "propertyType": "msg",
+                "value": "string",
+                "valueType": "entityState"
+            },
+            {
+                "property": "data",
+                "propertyType": "msg",
+                "value": "",
+                "valueType": "entity"
+            },
+            {
+                "property": "control_mode",
+                "propertyType": "flow",
+                "value": "string",
+                "valueType": "entityState"
+            }
+        ],
+        "for": "0",
+        "forType": "num",
+        "forUnits": "minutes",
+        "override_topic": false,
+        "state_location": "payload",
+        "override_payload": "msg",
+        "entity_location": "data",
+        "override_data": "msg",
+        "x": 160,
+        "y": 500,
         "wires": [
             [
-                "d98f534e50c7d44e"
+                "14e87e8913158506"
             ]
         ]
     },
@@ -12826,7 +12854,7 @@
         ]
     },
     {
-        "id": "474c4e3436c5d339",
+        "id": "ff6b007581375329",
         "type": "global-config",
         "env": [],
         "modules": {
